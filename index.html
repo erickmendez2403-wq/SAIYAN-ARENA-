@@ -33,7 +33,7 @@
 
 </style><script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js"}}</script></head><body>
 <div id="orientation">↻<br>Gira tu iPhone a horizontal para combatir</div>
-<div id="overlay"><div id="menu"><h1>SAIYAN<br>ARENA</h1><p><b>V17 · CARAS AL RIVAL</b><br>Aura de KI por personaje y superataque tipo kamehameha con haz de energía.</p><button id="start" disabled>CARGANDO MOTOR…</button><div id="status">Preparando combate 3D...</div><p style="font-size:11px;color:#aab6ce">Prototipo 3D con modelos estilizados generados por código; aún no utiliza personajes profesionales animados.</p></div></div>
+<div id="overlay"><div id="menu"><h1>SAIYAN<br>ARENA</h1><p><b>V18 · PEINADOS REDISEÑADOS</b><br>Aura de KI por personaje y superataque tipo kamehameha con haz de energía.</p><button id="start" disabled>CARGANDO MOTOR…</button><div id="status">Preparando combate 3D...</div><p style="font-size:11px;color:#aab6ce">Prototipo 3D con modelos estilizados generados por código; aún no utiliza personajes profesionales animados.</p></div></div>
 <div id="vignette"></div><div id="speedlines"></div><div id="impact"></div><div id="hud"><button id="quality">EFECTOS: ALTO</button><div id="hint">COMBO · RÁFAGA · SUPER ATAQUE</div><div id="bars"><div class="fighter"><div class="name">RYU · GUERRERO SOLAR</div><div class="bar"><div id="hp"></div></div><div class="bar ki"><div id="ki"></div></div></div><div id="heading">SAIYAN ARENA<div id="time">99</div></div><div class="fighter enemy"><div class="name">KAIDO · SOMBRA</div><div class="bar"><div id="ehp"></div></div></div></div><div id="ann"></div><div id="combo"></div></div>
 <div id="stick" role="group" aria-label="Joystick de movimiento"><div id="nub"></div></div><div id="controls" role="group" aria-label="Controles de combate"><button type="button" class="btn" id="up" aria-label="Ascender"><span class="symbol">▲</span><span class="caption">SUBIR</span></button><button type="button" class="btn" id="charge" aria-label="Mantener para cargar ki"><span class="symbol">✦</span><span class="caption">KI</span></button><button type="button" class="btn" id="down" aria-label="Descender"><span class="symbol">▼</span><span class="caption">BAJAR</span></button><button type="button" class="btn" id="dodge" aria-label="Esquivar"><span class="symbol">↝</span><span class="caption">DASH</span></button><button type="button" class="btn" id="punch" aria-label="Golpe y combo"><span class="symbol">✊</span><span class="caption">GOLPE</span></button><button type="button" class="btn" id="beam" aria-label="Ráfaga de ki"><span class="symbol">✧</span><span class="caption">RÁFAGA</span></button><button type="button" class="btn" id="ultimate" aria-label="Super ataque"><span class="symbol">⚡</span><span class="caption">SUPER</span></button></div>
 <div id="warrior-status" style="position:fixed;top:56px;left:50%;transform:translateX(-50%);z-index:3;pointer-events:none;background:#10142daa;color:#c9f6ff;padding:5px 9px;border-radius:8px;text-align:center;font:700 10px system-ui;max-width:80vw">CARGANDO ANIME WARRIOR…</div><script type="module">
@@ -61,8 +61,38 @@ let neck=make(body,cylinder(.23,.27,.42,12),skin,0,3.47,0);let head=new THREE.Gr
 let browband=make(head,sphere(.62,16,8),hair,0,.44,.025);browband.scale.set(.87,.40,.83);
 for(let s of [-1,1]){let ear=make(head,sphere(.14,10,8),skin,s*.53,-.08,0);ear.scale.set(.6,1.25,.8);let eye=make(head,sphere(.135,10,8),white,s*.238,.01,-.50);eye.scale.set(1.48,.49,.32);let pupil=make(head,sphere(.062,8,6),eyes,s*.22,.01,-.55);pupil.scale.set(.65,.9,.45);let brow=make(head,box(.30,.055,.055),hair,s*.235,.125,-.52);brow.rotation.z=-s*.18}
 make(head,box(.16,.035,.05),dark,0,-.32,-.515);
-// Sharp locks of hair, deliberately asymmetric.
-for(let i=0;i<11;i++){let a=i*Math.PI*2/11;let lock=make(head,cone(.16,rand(.48,.90),5),hair,Math.sin(a)*.37,.70+((i%3)*.08),Math.cos(a)*.35);lock.rotation.z=Math.sin(a)*-.42;lock.rotation.x=Math.cos(a)*.45}for(let i=0;i<4;i++){let bang=make(head,cone(.13,.43,5),hair,-.3+i*.19,.33,-.48);bang.rotation.z=.21-i*.1;bang.rotation.x=-.39}
+ // V18: Shaped layered anime haircut. Wide tapered polygonal locks instead of identical cones.
+ const hairRoot=new THREE.Group();head.add(hairRoot);
+ function lockAt(origin,tip,width,depth,mat=hair){
+   // Six-sided extruded taper with split silhouette and strong angular highlights.
+   const verts=[],indices=[];const ox=origin[0],oy=origin[1],oz=origin[2];
+   const tx=tip[0],ty=tip[1],tz=tip[2];
+   const segments=5;
+   for(let k=0;k<=segments;k++){
+     const t=k/segments,blend=t*t*(3-2*t),w=width*(1-t)*(.97+.18*Math.sin(Math.PI*t));
+     const x=ox+(tx-ox)*blend+Math.sin(t*Math.PI)*.055*Math.sign(tx-ox||1);
+     const y=oy+(ty-oy)*blend;
+     const z=oz+(tz-oz)*blend;
+     verts.push(x-w,y,z-depth*.5*(1-t), x+w,y,z-depth*.5*(1-t), x+w*.74,y,z+depth*.45*(1-t), x-w*.74,y,z+depth*.45*(1-t));
+     if(k){const prev=(k-1)*4,cur=k*4;for(let j=0;j<4;j++){const q=(j+1)%4;indices.push(prev+j,prev+q,cur+j,prev+q,cur+q,cur+j)}}
+   }
+   indices.push(0,1,2,0,2,3);
+   const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(verts,3));geo.setIndex(indices);geo.computeVertexNormals();
+   return make(hairRoot,geo,mat);
+ }
+ // Scalp mass with sharp planes, covered by staggered tapered locks.
+ const scalp=make(hairRoot,sphere(.58,16,12),hair,0,.45,.02);scalp.scale.set(.92,.52,.92);
+ if(scheme.suit===0xdb6c24){
+   // Hero: black, layered swept-back silhouette and separated forehead fringe.
+   const back=[[-.37,.38,.22,-.97,1.19,.70],[-.15,.55,.28,-.51,1.37,.72],[.12,.57,.28,.15,1.46,.68],[.34,.49,.20,.79,1.19,.62],[-.46,.36,0,-1.01,.96,.18],[.43,.35,0,1.05,.95,.1],[-.2,.63,-.12,-.72,1.20,.15],[.15,.65,-.10,.58,1.25,.1]];
+   for(const v of back)lockAt(v.slice(0,3),v.slice(3),.22,.26);
+   for(let j=0;j<6;j++){const x=-.47+j*.18;lockAt([x,.49,-.41],[x+(j%2?-.13:.1),-.13+(j%3)*.11,-.64],.125,.15)}
+ }else{
+   // Rival: silver higher crest, asymmetrical long swept-forward fringe.
+   const crest=[[-.43,.43,.10,-.71,1.18,.19],[-.31,.60,.08,-.51,1.48,.08],[-.09,.63,.05,-.11,1.66,-.1],[.14,.60,.06,.32,1.53,-.02],[.36,.50,.1,.80,1.36,.11],[.51,.39,.1,1.03,1.02,.1],[-.4,.31,.3,-.73,.94,.61],[.22,.40,.3,.48,1.24,.6]];
+   for(const v of crest)lockAt(v.slice(0,3),v.slice(3),.21,.28);
+   for(let j=0;j<5;j++){const x=-.37+j*.21;lockAt([x,.55,-.36],[x-.12,-.26+Math.abs(j-2)*.09,-.62],.16,.15)}
+ }
 function arm(side){let shoulder=new THREE.Group();shoulder.position.set(side*.82,2.93,0);body.add(shoulder);let sleeve=make(shoulder,sphere(.38),suit,side*.08,-.13,0);sleeve.scale.set(1,.92,1.05);let upper=make(shoulder,cylinder(.22,.26,.8),skin,side*.12,-.57,0);upper.rotation.z=side*.13;let elbow=new THREE.Group();elbow.position.set(side*.18,-.95,0);shoulder.add(elbow);make(elbow,cylinder(.19,.22,.67),skin,0,-.37,0);make(elbow,cylinder(.23,.23,.23),accent,0,-.65,0);let fist=make(elbow,sphere(.29,12,10),skin,0,-.82,-.05);fist.scale.set(.91,.87,.82);return {shoulder,elbow}}
 function leg(side){let hip=new THREE.Group();hip.position.set(side*.34,1.49,0);body.add(hip);make(hip,cylinder(.31,.35,.88),suit,0,-.48,0);let knee=new THREE.Group();knee.position.set(0,-.95,0);hip.add(knee);make(knee,cylinder(.21,.27,.89),suit,0,-.44,0);make(knee,cylinder(.24,.24,.41),shoe,0,-.83,0);let foot=make(knee,box(.46,.25,.73),shoe,0,-1.08,-.18);foot.rotation.x=-.13;return {hip,knee}}
 // V11 fighter art pass: layered facial features, sculpted silhouettes, costume-specific pieces.
@@ -79,11 +109,7 @@ for(let side of [-1,1]){
 const nose=make(head,cone(.075,.22,4),skin,0,-.15,-.58);nose.rotation.x=-.18;
 const lip=make(head,box(.18,.028,.05),fabricShadow,0,-.37,-.519);
 // Shaped sideburns and more directional hair spikes for distinct anime profiles.
-for(let i=0;i<(isHero?9:13);i++){
- const a=i*Math.PI*2/(isHero?9:13),height=(isHero?.62:.77)+(.13*(i%3));
- const spike=make(head,cone(isHero?.20:.145,height,5),hair,Math.sin(a)*.39,.71+(i%3)*.07,Math.cos(a)*.29);
- spike.rotation.z=Math.sin(a)*(isHero?-.59:-.27);spike.rotation.x=Math.cos(a)*(isHero?.53:.4);
-}
+
 if(isHero){
  // Martial arts gi: contrasting V-neck, layered collar, ties and loose cloth panels.
  const v1=make(body,box(.2,.62,.11),inner,-.22,2.98,-.48);v1.rotation.z=-.47;
@@ -167,7 +193,7 @@ async function loadWarriors(){
     for(const [i,f] of [player,enemy].entries())bindRig(f,cloneSkeleton(gltf.scene),gltf.animations||[],i);
     const st=document.getElementById('warrior-status');if(st)st.textContent='MODELO 3D: ANIME WARRIOR CARGADO';
   }catch(e){
-    const st=document.getElementById('warrior-status');if(st)st.textContent='GUERREROS V11 · DISEÑO PROPIO · GLB OPCIONAL';
+    const st=document.getElementById('warrior-status');if(st)st.textContent='GUERREROS V18 · PELO NUEVO · GLB OPCIONAL';
     console.warn('El modelo adquirido se agrega a assets/anime-warrior.glb:',e);
   }
 }
@@ -432,5 +458,5 @@ let follow=mid.clone().addScaledVector(side,distance).add(V(0,2.0+clamp(separati
 // Move slightly toward the front of the procedural fighters without going behind them.
 follow.addScaledVector(horizontal,.75);
 if(shake>0){follow.add(V(rand(-shake,shake),rand(-shake,shake),rand(-shake,shake)*.25));shake=Math.max(0,shake-dt*1.4)}camera.position.lerp(follow,1-Math.exp(-dt*5));let look=mid.clone();camera.lookAt(look);camera.fov=THREE.MathUtils.lerp(camera.fov,clamp(44+separation*.45,45,61),dt*2);camera.updateProjectionMatrix();impactPower=Math.max(0,impactPower-dt*2.8);speedPower=Math.max(0,speedPower-dt*1.9);impactNode.style.opacity=impactPower.toFixed(3);speedNode.style.opacity=speedPower.toFixed(3);renderer.render(scene,camera)}
-$('start').disabled=false;$('start').textContent='COMENZAR PELEA';$('status').textContent='✓ V17: orientación frontal, cámara lateral estable y lock-on corregido.';requestAnimationFrame(loop);addEventListener('resize',()=>{renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix()});
+$('start').disabled=false;$('start').textContent='COMENZAR PELEA';$('status').textContent='✓ V18: peinados nuevos, cámara estable y controles laterales.';requestAnimationFrame(loop);addEventListener('resize',()=>{renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix()});
 </script></body></html>
