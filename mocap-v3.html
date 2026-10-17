@@ -1,0 +1,49 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="#080f22"><title>Saiyan Arena — Rokoko diagnóstico V3</title><style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;background:#070e20;color:#fff;overflow:hidden;font-family:system-ui,-apple-system,sans-serif}#view{position:fixed;inset:0}canvas{display:block}header{position:fixed;top:max(12px,env(safe-area-inset-top));left:16px;right:16px;pointer-events:none;text-shadow:0 2px 5px #000;z-index:3}h1{margin:0;font-size:clamp(17px,3vw,24px);letter-spacing:.06em}small{color:#b8cbea}#picker{position:fixed;bottom:max(14px,env(safe-area-inset-bottom));left:10px;right:10px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;z-index:3}button{border:1px solid #ffffff50;color:white;background:#172956ee;border-radius:14px;font-size:13px;font-weight:800;padding:12px 13px;min-height:44px;touch-action:manipulation}button.active{background:linear-gradient(120deg,#e64b2b,#af254d);border-color:#ffa8a8}button:disabled{opacity:.5}#message{position:fixed;top:22%;left:12%;width:76%;text-align:center;font-weight:800;color:#fed7aa;text-shadow:0 2px 8px #000;pointer-events:none}#credit{position:fixed;right:12px;top:max(12px,env(safe-area-inset-top));font-size:10px;color:#bed9ff88;pointer-events:none}@media(orientation:portrait){#picker{bottom:calc(20px + env(safe-area-inset-bottom))}button{flex:1 1 38%;padding:10px 8px;font-size:12px}}
+</style><script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js"}}</script></head><body><div id="view"></div><header><h1>SAIYAN ARENA · MOCAP TEST V3</h1><small>Prueba con las animaciones Rokoko reales que enviaste</small></header><div id="credit">FBX / MIXAMO SKELETON</div><div id="message">Preparando esqueleto…</div><nav id="picker"></nav><div id="loadhelp" style="position:fixed;top:34%;left:5%;width:90%;text-align:center;color:#ffe5b2;z-index:5;font-size:12px;pointer-events:none">Si solo ves fondo azul, revisa el mensaje de carga o error.</div>
+<script>window.addEventListener('error',e=>{document.getElementById('message').textContent='ERROR: '+e.message});window.addEventListener('unhandledrejection',e=>{document.getElementById('message').textContent='ERROR: '+(e.reason?.message||e.reason)});</script><script type="module">
+import * as THREE from 'three';
+import {FBXLoader} from 'https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/loaders/FBXLoader.js';
+const motions=[['FightingIdle','Guardia'],['Boxing','Boxeo'],['BigFrontKick','Patada frontal'],['RoundHouseKick','Patada circular'],['ShadowBoxing','Shadow Boxing'],['KnockOut_Loser','Derrota']];
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x162844);scene.fog=new THREE.Fog(0x162844,18,35);
+const camera=new THREE.PerspectiveCamera(42,innerWidth/innerHeight,.1,100);camera.position.set(5,4.3,13);camera.lookAt(0,1.7,0);
+const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.6));renderer.outputColorSpace=THREE.SRGBColorSpace;document.getElementById('view').appendChild(renderer.domElement);
+scene.add(new THREE.HemisphereLight(0xe6f4ff,0x354365,2.2));const sun=new THREE.DirectionalLight(0xffce8e,2.9);sun.position.set(-4,9,7);scene.add(sun);
+const ground=new THREE.Mesh(new THREE.CircleGeometry(5.3,80),new THREE.MeshStandardMaterial({color:0x344260,roughness:.85}));ground.rotation.x=-Math.PI/2;ground.position.y=-.04;scene.add(ground);
+for(let i=1;i<=4;i++){let g=new THREE.Mesh(new THREE.TorusGeometry(i*1.04,.018,4,80),new THREE.MeshBasicMaterial({color:0x90bbff,transparent:true,opacity:.16}));g.rotation.x=Math.PI/2;g.position.y=.005;scene.add(g)}
+const bodymat=new THREE.MeshStandardMaterial({color:0xe17b35,roughness:.82}),pants=new THREE.MeshStandardMaterial({color:0x274893,roughness:.86}),skin=new THREE.MeshStandardMaterial({color:0xe9b08b,roughness:.92}),hair=new THREE.MeshStandardMaterial({color:0x12192f,roughness:.8}),boots=new THREE.MeshStandardMaterial({color:0x25355d,roughness:.85});
+const segments=[
+ ['Hips','Spine2',.39,bodymat],['Spine2','Neck',.32,bodymat],
+ ['LeftShoulder','LeftArm',.18,bodymat],['LeftArm','LeftForeArm',.17,skin],['LeftForeArm','LeftHand',.14,skin],
+ ['RightShoulder','RightArm',.18,bodymat],['RightArm','RightForeArm',.17,skin],['RightForeArm','RightHand',.14,skin],
+ ['LeftUpLeg','LeftLeg',.25,pants],['LeftLeg','LeftFoot',.19,pants],['LeftFoot','LeftToeBase',.17,boots],
+ ['RightUpLeg','RightLeg',.25,pants],['RightLeg','RightFoot',.19,pants],['RightFoot','RightToeBase',.17,boots]
+];
+const visual=new THREE.Group();scene.add(visual);const cyl=new THREE.CylinderGeometry(1,1,1,10);const joints=[];
+for(let [a,b,r,mat] of segments){let mesh=new THREE.Mesh(cyl,mat);visual.add(mesh);joints.push({a,b,r,mesh})}
+const sphere=new THREE.SphereGeometry(1,18,12);let head=new THREE.Mesh(sphere,skin);head.scale.set(.31,.40,.29);visual.add(head);
+const eyeGeo=new THREE.SphereGeometry(.055,8,6);let hairpieces=[];for(let i=0;i<8;i++){let spike=new THREE.Mesh(new THREE.ConeGeometry(.12,.34+(i%3)*.09,5),hair);visual.add(spike);hairpieces.push(spike)}
+// Visible reference character until a real FBX pose is ready.
+const standin=new THREE.Group();scene.add(standin);
+const sm=new THREE.MeshStandardMaterial({color:0xffa24b,roughness:.72});
+const ball=(x,y,z,r,m=sm)=>{const o=new THREE.Mesh(new THREE.SphereGeometry(r,12,10),m);o.position.set(x,y,z);standin.add(o);return o};
+ball(0,2.4,0,.33,new THREE.MeshStandardMaterial({color:0xf0bd96}));
+const limb=(x,y,z,w,h,d,m=sm)=>{const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);o.position.set(x,y,z);standin.add(o);return o};
+limb(0,1.75,0,.62,.9,.35);limb(-.48,1.75,0,.22,.8,.23);limb(.48,1.75,0,.22,.8,.23);
+limb(-.18,.77,0,.25,.9,.25);limb(.18,.77,0,.25,.9,.25);
+const msg=document.getElementById('message'), nav=document.getElementById('picker');let active=null;let speed=1;let loaded=new Map();let loader=new FBXLoader();
+const buttons=motions.map(([id,name])=>{let b=document.createElement('button');b.textContent=name;nav.appendChild(b);b.onclick=()=>select(id);return b});
+const tempA=new THREE.Vector3(),tempB=new THREE.Vector3(),hip=new THREE.Vector3(),headpos=new THREE.Vector3(),worldUp=new THREE.Vector3(0,1,0),q=new THREE.Quaternion();
+function boneOf(root,name){let found=null;root.traverse(o=>{if(!found&&o.isBone&&(o.name===name||o.name.endsWith(':'+name)||o.name.endsWith('_'+name)||o.name==='mixamorig'+name))found=o});return found}
+function bindCharacter(group){const bones={};const names=new Set(segments.flatMap(s=>s.slice(0,2)).concat(['Head','Hips','Neck']));for(let n of names)bones[n]=boneOf(group,n);
+const needed=['Hips','Head','LeftArm','RightArm','LeftLeg','RightLeg'];let missing=needed.filter(n=>!bones[n]);if(missing.length)throw new Error('Faltan huesos: '+missing.join(', '));
+const mixer=new THREE.AnimationMixer(group);const clip=group.animations?.[0];if(!clip)throw new Error('El FBX no contiene animación');const action=mixer.clipAction(clip);action.play();
+group.updateMatrixWorld(true);bones.Hips.getWorldPosition(hip);bones.Head.getWorldPosition(headpos);let scale=1.45/Math.max(0.01,headpos.distanceTo(hip));return {group,bones,mixer,action,scale};}
+async function select(id){buttons.forEach((b,i)=>{b.disabled=true;b.classList.toggle('active',motions[i][0]===id)});msg.textContent='Cargando '+motions.find(m=>m[0]===id)[1]+'…';try{let rig=loaded.get(id);if(!rig){let group=await loader.loadAsync('./'+id+'.fbx');group.visible=false;scene.add(group);rig=bindCharacter(group);loaded.set(id,rig)}if(active){active.action.stop()}active=rig;standin.visible=false;active.action.reset().play();active.action.setLoop(THREE.LoopRepeat,Infinity);document.getElementById('loadhelp').style.display='none';msg.textContent='✓ Animación cargada: '+id;setTimeout(()=>{if(active===rig)msg.textContent=''},1700);}catch(e){console.error(e);standin.visible=true;msg.textContent='ERROR FBX: '+e.message+' · Comprueba que los .fbx estén junto a este HTML';}finally{buttons.forEach(b=>b.disabled=false)}}
+function renderPose(rig){rig.group.updateMatrixWorld(true);const b=rig.bones;b.Hips.getWorldPosition(hip);const k=rig.scale;
+function loc(n,into){if(!b[n])return null;b[n].getWorldPosition(into);into.sub(hip).multiplyScalar(k);into.y+=1.4;return into}
+for(let s of joints){const a=loc(s.a,tempA),bb=loc(s.b,tempB);if(!a||!bb){s.mesh.visible=false;continue}s.mesh.visible=true;const diff=bb.clone().sub(a),length=diff.length();s.mesh.position.copy(a).add(bb).multiplyScalar(.5);s.mesh.scale.set(s.r,Math.max(.02,length),s.r);s.mesh.quaternion.setFromUnitVectors(worldUp,diff.normalize())}
+let h=loc('Head',tempA);if(h){head.position.copy(h);for(let i=0;i<hairpieces.length;i++){let ang=i*Math.PI*2/hairpieces.length,sp=hairpieces[i];sp.position.copy(h).add(new THREE.Vector3(Math.cos(ang)*.19,.38+(i%3)*.05,Math.sin(ang)*.19));sp.rotation.z=Math.cos(ang)*-.32;sp.rotation.x=Math.sin(ang)*.35}}}
+let prev=performance.now();function loop(now){requestAnimationFrame(loop);let dt=Math.min(.05,(now-prev)*.001);prev=now;if(active){active.mixer.update(dt*speed);renderPose(active)}renderer.render(scene,camera)}requestAnimationFrame(loop);select('FightingIdle');
+window.addEventListener('resize',()=>{renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix()});
+</script></body></html>
